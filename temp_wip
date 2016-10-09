@@ -1,0 +1,73 @@
+#!python3
+#<!------------------utf-8-----------------------!>
+import os
+import sys
+import json
+#import pyodbc
+#from requests import request
+#from urllib import urllib.request
+from tweepy import Stream
+from tweepy import OAuthHandler
+from tweepy.streaming import StreamListener
+
+
+#pass security information to variables
+consumer_key="7jbj51PhiMzlA50SpM0KTgARB"
+consumer_secret="sTjKyEeUojCDG8ja7EY00uk6BwlUavCEzlocgrhoC6NsO8mKsL"
+access_key = "155989537-TomVnKsSP49FIICZxIXc98DDqGLbsTCqf0Oh1lJt"
+access_secret = "yBXY1XUZ2p1v1537oSboFl0byRXPaKAhUfKIPKdoLZOD4"
+
+#Connection Parameter
+import pymssql
+conn = pymssql.connect(server='personaltwitter.database.windows.net', user='personaltwitteradmin@personaltwitter', password='Personal_Password', database='Personal_TwitterDB')
+cnxn = pyodbc.connect('DRIVER={SQL Server};SERVER=SQLSRV01;DATABASE=DATABASE;UID=USER;PWD=PASSWORD')
+cursor = cnxn.cursor()
+
+cursor.execute("SELECT WORK_ORDER.TYPE,WORK_ORDER.STATUS, WORK_ORDER.BASE_ID, WORK_ORDER.LOT_ID FROM WORK_ORDER")
+for row in cursor.fetchall():
+    print row
+
+#use variables to access twitter
+auth = OAuthHandler(consumer_key,consumer_secret)
+auth.set_access_token(access_key, access_secret)
+
+#create an class called 'customStreamListener'
+class listener(StreamListener):
+    def on_data(self, data):
+        all_data = json.loads(data)
+
+        tweet = all_data["text"]
+
+        username = all_data["user"]["screen_name"]
+        retweet_count=0
+        if (all_data['retweeted']):
+            retweet_count = all_data["retweet_count"]
+
+        #c.execute("INSERT INTO taula (time, username, tweet) VALUES (%s,%s,%s)",
+        #          (time.time(), username, tweet))
+
+        #conn.commit()
+        if retweet_count > 0:
+            print(tweet)
+            print (username)
+            print(retweet_count)
+
+        return True
+
+    def on_error(self):
+        print >> sys.stderr, 'Encountered error with status code:', status_code
+        return True  # Don't kill the stream
+
+    def on_timeout(self):
+        print >> sys.stderr, 'Timeout...'
+        return True  # Don't kill the stream
+
+    #def on_error(self, status_code):
+    #    print
+    #    status
+
+twitterStream = Stream(auth, listener())
+twitterStream.filter(track=["#android"],languages=['en'],)
+
+
+#def sentiment_analysis:
