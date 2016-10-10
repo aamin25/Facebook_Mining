@@ -3,7 +3,8 @@
 import os
 import sys
 import json
-#import pyodbc
+#import pymssql
+import pyodbc
 #from requests import request
 #from urllib import urllib.request
 from tweepy import Stream
@@ -18,14 +19,15 @@ access_key = "155989537-TomVnKsSP49FIICZxIXc98DDqGLbsTCqf0Oh1lJt"
 access_secret = "yBXY1XUZ2p1v1537oSboFl0byRXPaKAhUfKIPKdoLZOD4"
 
 #Connection Parameter
-import pymssql
-conn = pymssql.connect(server='personaltwitter.database.windows.net', user='personaltwitteradmin@personaltwitter', password='Personal_Password', database='Personal_TwitterDB')
-cnxn = pyodbc.connect('DRIVER={SQL Server};SERVER=SQLSRV01;DATABASE=DATABASE;UID=USER;PWD=PASSWORD')
+
+#cnxn = pymssql.connect(server='personaltwitter.database.windows.net', user='personaltwitteradmin@personaltwitter', password='Personal_Password', database='Personal_TwitterDB')
+
+cnxn = pyodbc.connect('Driver={ODBC Driver 13 for SQL Server};Server=tcp:personaltwitter.database.windows.net;PORT=1433;Database=Personal_TwitterDB;Uid=personaltwitteradmin;Pwd=Personal_Password')
 cursor = cnxn.cursor()
 
-cursor.execute("SELECT WORK_ORDER.TYPE,WORK_ORDER.STATUS, WORK_ORDER.BASE_ID, WORK_ORDER.LOT_ID FROM WORK_ORDER")
-for row in cursor.fetchall():
-    print row
+#cursor.execute("SELECT WORK_ORDER.TYPE,WORK_ORDER.STATUS, WORK_ORDER.BASE_ID, WORK_ORDER.LOT_ID FROM WORK_ORDER")
+#for row in cursor.fetchall():
+#    print row
 
 #use variables to access twitter
 auth = OAuthHandler(consumer_key,consumer_secret)
@@ -36,23 +38,29 @@ class listener(StreamListener):
     def on_data(self, data):
         all_data = json.loads(data)
 
-        tweet = all_data["text"]
+        tweet = all_data['text']
+        tweet_id = all_data['id_str']
+        tweet_url = all_data['entities']['urls']
+        print tweet_id
+        print tweet_url
+        print tweet
 
-        username = all_data["user"]["screen_name"]
-        retweet_count=0
-        if (all_data['retweeted']):
-            retweet_count = all_data["retweet_count"]
+        process_db(all_data)
+        #username = all_data["user"]["screen_name"]
+        #retweet_count=0
+        #if (all_data['retweeted']):
+        #    retweet_count = all_data["retweet_count"]
 
         #c.execute("INSERT INTO taula (time, username, tweet) VALUES (%s,%s,%s)",
         #          (time.time(), username, tweet))
 
         #conn.commit()
-        if retweet_count > 0:
-            print(tweet)
-            print (username)
-            print(retweet_count)
+        #if retweet_count > 0:
+        #    print(tweet)
+        #    print (username)
+         #   print(retweet_count)
 
-        return True
+        return False
 
     def on_error(self):
         print >> sys.stderr, 'Encountered error with status code:', status_code
@@ -66,8 +74,21 @@ class listener(StreamListener):
     #    print
     #    status
 
+def process_db(all_data):
+    tweetid = all_data['id_str']
+    retweet = all_data['retweeted']  #bool  <-- modify db column
+    username = all_data['user']['screen_name']
+    favorited = all_data['favorited']   #bool <-- modify db column
+    user_followers = all_data['user']['followers_count']
+    user_friends = all_data['user']['friends_count']
+    retweet_count  = all_data['retweet_count']
+    cursor.execute('insert into personal_twitter_schema.tweets_data_test (tweetid, retweet, username, favorited, user_followers, user_friends, retweet_count) values (?,?,?,?,?,?,?)',
+                  tweetid, retweet, username, favorited, user_followers, user_friends, retweet_count)
+    cnxn.commit()
+    print username
+
+
 twitterStream = Stream(auth, listener())
-twitterStream.filter(track=["#android"],languages=['en'],)
+twitterStream.filter(track=["#android"],languages=['en'])
 
 
-#def sentiment_analysis:
