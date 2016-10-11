@@ -11,6 +11,7 @@ import sys
 import json
 import pyodbc
 import urllib2
+
 from tweepy import OAuthHandler
 from tweepy import Stream
 from tweepy.streaming import StreamListener
@@ -30,9 +31,8 @@ cursor = cnxn.cursor()
 filter_words = ['#android']
 filter_lang = ['en']
 
-#cursor.execute("SELECT WORK_ORDER.TYPE,WORK_ORDER.STATUS, WORK_ORDER.BASE_ID, WORK_ORDER.LOT_ID FROM WORK_ORDER")
-#for row in cursor.fetchall():
-#    print row
+#PowerBI rest API URL which will be used to post live sentiment scores to steaming dataset
+url = 'https://api.powerbi.com/beta/42dc8b0f-4759-4afe-9348-41952eeaf98b/datasets/a8cd5d1b-3ab7-4ba4-ba0e-69577582d43a/rows?key=Ta4e34Wmx%2FmKGefrvRLZaxUw3GsmdT7o7GK284wg4qNGPB8k415C5zP8IofK8mgpwixm5XhXEZPnaZD71ED%2F0w%3D%3D'
 
 #use variables to access twitter
 auth = OAuthHandler(consumer_key,consumer_secret)
@@ -42,31 +42,7 @@ auth.set_access_token(access_key, access_secret)
 class listener(StreamListener):
     def on_data(self, data):
         all_data = json.loads(data)
-
-        tweet_text = all_data['text']
-        tweet = filter_tweet(tweet_text)
-        sentiment = sentiment_analysis(tweet)
-        tweet_id = all_data['id_str']
-        tweet_url = all_data['entities']['urls']
-        print tweet_id
-        print tweet_url
-        print tweet
-
         process_db(all_data)
-        #username = all_data["user"]["screen_name"]
-        #retweet_count=0
-        #if (all_data['retweeted']):
-        #    retweet_count = all_data["retweet_count"]
-
-        #c.execute("INSERT INTO taula (time, username, tweet) VALUES (%s,%s,%s)",
-        #          (time.time(), username, tweet))
-
-        #conn.commit()
-        #if retweet_count > 0:
-        #    print(tweet)
-        #    print (username)
-         #   print(retweet_count)
-
         return False
 
     def on_error(self):
@@ -100,6 +76,11 @@ def process_db(all_data):
 
     Dependencies: pyodbc
     '''
+    tweet_raw = all_data['text']
+    tweet = filter_tweet(tweet_raw)
+    sentiment_array = sentiment_analysis(tweet)
+    sentiment_score = sentiment_array[0]
+    sentiment_mean = sentiment_array[1]
     tweetid = all_data['id_str']
     retweet = all_data['retweeted']  #bool  <-- modify db column
     username = all_data['user']['screen_name']
@@ -107,10 +88,19 @@ def process_db(all_data):
     user_followers = all_data['user']['followers_count']
     user_friends = all_data['user']['friends_count']
     retweet_count  = all_data['retweet_count']
-    cursor.execute('insert into personal_twitter_schema.tweets_data_test (tweetid, retweet, username, favorited, user_followers, user_friends, retweet_count) values (?,?,?,?,?,?,?)',
-                  tweetid, retweet, username, favorited, user_followers, user_friends, retweet_count)
+    cursor.execute('insert into personal_twitter_schema.tweets_data_test '
+                   '(tweetid, '
+                   'retweet, '
+                   'username, '
+                   'favorited, '
+                   'user_followers, '
+                   'user_friends, '
+                   'retweet_count, '
+                   'sentiment_score, '
+                   'sentiment_mean) values (?,?,?,?,?,?,?,?,?)',
+                    tweetid, retweet, username, favorited, user_followers, user_friends, retweet_count,sentiment_score,sentiment_mean)
     cnxn.commit()
-    print username
+
 
 def sentiment_analysis(tweet): #modify for productionization
     '''
@@ -118,7 +108,7 @@ def sentiment_analysis(tweet): #modify for productionization
 
     Param text: Pass the pre parsed text to the function without any url or hashtags
 
-    Return: Returns the Sentiment_score of the text passed
+    Return: Returns the Sentiment_score and sentiment mean of the text passed in list format
 
     Dependencies: urllib2 and json for
     '''
@@ -128,7 +118,18 @@ def sentiment_analysis(tweet): #modify for productionization
     page = response.read()  # get the response
     sentiment_out_raw = json.loads(page)  # parse the result. The result is in JSON format
     sentiment_score = sentiment_out_raw['data'][0]['polarity']
-    return sentiment_score
+
+    if sentiment_score = 4 :
+        sentiment_mean = 'Positive'
+    elif sentiment_score = 2 :
+        sentiment_mean = 'Neutral'
+    elif sentiment_score = 0 :
+        sentiment_mean = 'Negative'
+    else:
+        print 'Invalid Sentiment Value'
+
+    return [sentiment_score,sentiment_mean]
+
 
 def post(url, data):
     '''
