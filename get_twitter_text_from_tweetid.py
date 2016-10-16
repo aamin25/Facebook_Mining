@@ -32,3 +32,6 @@ def get_status(tweetid):
 
 #example of invoking the function
 print get_status(786092888044232704)
+
+#printing raw data from the tweet
+print repr(get_status(787639298849845249))
