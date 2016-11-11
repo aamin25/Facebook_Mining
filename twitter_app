@@ -12,6 +12,7 @@ import sqlite3
 import urllib2
 import datetime
 
+from httplib import IncompleteRead
 from bs4 import BeautifulSoup
 from tweepy import OAuthHandler
 from tweepy import Stream
@@ -57,9 +58,12 @@ class listener(StreamListener):
         all_data = json.loads(data)
 
         # Check if there's any data in tweet before processing.
+        count = 0
         if 'text' in all_data:
             process_db(all_data)
-            print all_data['text']   #-- for testing --#
+            # print all_data['text']   #-- for testing --#
+            count += 1
+            print count
             return True
         else:
             return True
@@ -118,8 +122,6 @@ def process_db(all_data):
     sentiment_score = sentiment_array[0]
     sentiment_mean = sentiment_array[1]
 
-    #----------------print comparative result    #--
-    print str(sentiment_score) +  ',' + str(custom_sentiment_score)   #-- for testing --#
 
     #   Insert the values into the database
     cursor.execute('''insert into twitter_data
@@ -134,9 +136,9 @@ def process_db(all_data):
                       sentiment_mean,
                       timestamp,
                       source_info) values (?,?,?,?,?,?,?,?,?,?,?)''',
-                     (tweetid,  
-                     retweet,   
-                     username, 
+                     (tweetid,
+                     retweet,
+                     username,
                      favorited,
                      user_followers,
                      user_friends,
@@ -206,8 +208,13 @@ def post(url, data):
         return [e.reason, e.code]
 
 
-# Calling the stram listener calss using the auth credentials.
-twitterStream = Stream(auth, listener())
+while(True):
+    try:
+        # Calling the stream listener class using the auth credentials.
+        twitterStream = Stream(auth, listener())
 
-# Using filter object the filter tweets on the basis of required #tags and languages
-twitterStream.filter(track=['#android'], languages=['en'])
+        # Using filter object the filter tweets on the basis of required #tags and languages
+        twitterStream.filter(track=['#TrumpProtest'], languages=['en'])
+
+    except:
+        continue
