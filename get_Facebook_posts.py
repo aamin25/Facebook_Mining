@@ -86,7 +86,7 @@ def get_fb_posts(page):
 					sentiment_mean= sentiment_value[1]
 					inserted_time = datetime.datetime.now()
 
-					page_name = 'Lionbridge'
+					page_name = page
 
 					cursor.execute('''insert into posts_data (id, message, created_time, posted_from_name, posted_from_id, status_type, page_name, name, date_updated, message_tags_id, message_tags_name, post_sentiment_score, post_sentiment_mean,data_inserted) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(id, message, created_time, post_from_name, post_from_id, status_type, page_name, name, updated_time, message_tags_id, message_tags_name, sentiment_score, sentiment_mean, inserted_time))
 
