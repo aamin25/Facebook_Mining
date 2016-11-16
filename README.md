@@ -9,3 +9,6 @@ For Visualizations we are using the PowerBi application to process the saved dat
 
 
 In case of any doubt please feel free to mail me @: aamin25@gmail.com with subject Facebook_mining.
+
+
+All the application code copyrighted under the GPL-3.0 license
