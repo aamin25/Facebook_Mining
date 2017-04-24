@@ -20,7 +20,7 @@ cursor = sqlite3.connect('test.db')
 
 graph = fb.GraphAPI(access_token=access_token, version=2.7)
 
-key = 'L10nbridge'
+key = 'L10nbridge'  #Enter the page name or id for entering 
 
 def get_fb_posts(page):
 	
